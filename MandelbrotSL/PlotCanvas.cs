@@ -9,6 +9,8 @@ using System.Windows.Media;
 using System.Windows.Media.Animation;
 using System.Windows.Shapes;
 using System.Numerics;
+using System.Threading.Tasks;
+using System.Linq;
 
 namespace MandelbrotSL
 {
@@ -24,12 +26,14 @@ namespace MandelbrotSL
         double yStep;
         double yOrigin;
 
+        public event EventHandler DrawCompleted;
+
         public PlotCanvas(int width, int height, Complex topLeft, Complex bottomRight)
         {
             // Set size
             this.Width = width;
             this.Height = height;
-            canvas = new int[Width, Height];
+            canvas = new int[Height, Width];
 
             // set the points for determine the rectangle
             this.TopLeft = topLeft;
@@ -44,8 +48,25 @@ namespace MandelbrotSL
 
         public int this[int x, int y]
         {
-            get { return canvas[x, y]; }
-            set { canvas[x, y] = value; }
+            get { return canvas[y, x]; }
+            set { canvas[y, x] = value; }
+        }
+
+        public void Draw(int limit, double threshold)
+        {
+            Task.Factory.StartNew(
+                () =>
+                {
+                    foreach (var y in Enumerable.Range(0, Height))
+                        foreach (var x in Enumerable.Range(0, Width))
+                            Task.Factory.StartNew<int>(() => MandelbrotSet.Calculate(GetPoint(x, y), limit, threshold))
+                                .ContinueWith(task => this[x, y] = task.Result);
+                }).ContinueWith(
+                t =>
+                {
+                    if (DrawCompleted != null)
+                        DrawCompleted(this, EventArgs.Empty);
+                });
         }
 
         public Complex GetPoint(int x, int y)

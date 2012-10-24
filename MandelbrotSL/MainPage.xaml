@@ -1,27 +1,324 @@
-﻿<UserControl x:Class="MandelbrotSL.MainPage"
+﻿<UserControl
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+	xmlns:local="clr-namespace:MandelbrotSL"
+    xmlns:i="http://schemas.microsoft.com/expression/2010/interactivity" xmlns:ei="http://schemas.microsoft.com/expression/2010/interactions" x:Class="MandelbrotSL.MainPage"
     mc:Ignorable="d"
-    d:DesignHeight="600" d:DesignWidth="800" Width="800" Height="600">
+    d:DesignHeight="600" d:DesignWidth="800" Width="800" Height="600" Loaded="UserControl_Loaded_1" KeyUp="UserControl_KeyUp_1">
+	<UserControl.Resources>
+		<Storyboard x:Name="ShowZoomCenterStoryboard">
+			<DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="wheelPositionIndicateBorder">
+				<EasingDoubleKeyFrame KeyTime="0" Value="0"/>
+				<EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="1">
+					<EasingDoubleKeyFrame.EasingFunction>
+						<CircleEase EasingMode="EaseOut"/>
+					</EasingDoubleKeyFrame.EasingFunction>
+				</EasingDoubleKeyFrame>
+				<EasingDoubleKeyFrame KeyTime="0:0:1" Value="1"/>
+				<EasingDoubleKeyFrame KeyTime="0:0:1.5" Value="0">
+					<EasingDoubleKeyFrame.EasingFunction>
+						<CircleEase EasingMode="EaseOut"/>
+					</EasingDoubleKeyFrame.EasingFunction>
+				</EasingDoubleKeyFrame>
+			</DoubleAnimationUsingKeyFrames>
+		</Storyboard>
+        <local:DoubleIntegerConverter x:Key="DoubleIntegerConverter" />
+	</UserControl.Resources>
 
     <Grid x:Name="LayoutRoot" Background="#FF232323">
-		<Grid.RowDefinitions>
-			<RowDefinition Height="64" />
-			<RowDefinition Height="480" />
-			<RowDefinition />
-		</Grid.RowDefinitions>
-		<Grid.ColumnDefinitions>
-			<ColumnDefinition />
-			<ColumnDefinition Width="640" />
-		</Grid.ColumnDefinitions>
-		<TextBlock Foreground="White" FontSize="48" FontFamily="Segoe UI Light" Grid.Column="1">Mandelbrot Set</TextBlock>
-		<Image Name="canvasImage" Grid.Row="1" Grid.Column="1" Width="640" Height="480" />
-        <TextBlock Name="plotIndicator" Grid.Row="2" Foreground="White" FontFamily="Segoe UI Light">Plotting...</TextBlock>
-        <TextBlock Grid.Row="1" Grid.Column="1" Name="leftBoundIndicator" Foreground="LightGray" FontFamily="Segoe UI Light" VerticalAlignment="Center" HorizontalAlignment="Left">-2.0</TextBlock>
-        <TextBlock Grid.Row="1" Grid.Column="1" Name="rightBoundIndicator" Foreground="LightGray" FontFamily="Segoe UI Light" VerticalAlignment="Center" HorizontalAlignment="Right">1.0</TextBlock>
-        <TextBlock Grid.Row="1" Grid.Column="1" Name="topBoundIndicator" Foreground="LightGray" FontFamily="Segoe UI Light" VerticalAlignment="Top" HorizontalAlignment="Center">1.5</TextBlock>
-        <TextBlock Grid.Row="1" Grid.Column="1" Name="bottomBoundIndicator" Foreground="LightGray" FontFamily="Segoe UI Light" VerticalAlignment="Bottom" HorizontalAlignment="Center">-1.5</TextBlock>
+        <VisualStateManager.VisualStateGroups>
+            <VisualStateGroup x:Name="VisualStateGroup">
+                <VisualState x:Name="Closed">
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="(FrameworkElement.Width)" Storyboard.TargetName="configPanel" From="200" To="0" Duration="0:0:0.3">
+                            <DoubleAnimation.EasingFunction>
+                                <CircleEase EasingMode="EaseOut"/>
+                            </DoubleAnimation.EasingFunction>
+                        </DoubleAnimation>
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Visibility)" Storyboard.TargetName="configPanel">
+                            <DiscreteObjectKeyFrame KeyTime="0">
+                                <DiscreteObjectKeyFrame.Value>
+                                    <Visibility>Visible</Visibility>
+                                </DiscreteObjectKeyFrame.Value>
+                            </DiscreteObjectKeyFrame>
+                            <DiscreteObjectKeyFrame KeyTime="0:0:0.3">
+                                <DiscreteObjectKeyFrame.Value>
+                                    <Visibility>Collapsed</Visibility>
+                                </DiscreteObjectKeyFrame.Value>
+                            </DiscreteObjectKeyFrame>
+                        </ObjectAnimationUsingKeyFrames>
+                    </Storyboard>
+                </VisualState>
+                <VisualState x:Name="Opened">
+                    <Storyboard>
+                        <DoubleAnimation Storyboard.TargetProperty="(FrameworkElement.Width)" Storyboard.TargetName="configPanel" From="0" To="200" Duration="0:0:0.3">
+                            <DoubleAnimation.EasingFunction>
+                                <CircleEase EasingMode="EaseOut"/>
+                            </DoubleAnimation.EasingFunction>
+                        </DoubleAnimation>
+                        <ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Visibility)" Storyboard.TargetName="configPanel">
+                            <DiscreteObjectKeyFrame KeyTime="0">
+                                <DiscreteObjectKeyFrame.Value>
+                                    <Visibility>Visible</Visibility>
+                                </DiscreteObjectKeyFrame.Value>
+                            </DiscreteObjectKeyFrame>
+                        </ObjectAnimationUsingKeyFrames>
+                    </Storyboard>
+                </VisualState>
+            </VisualStateGroup>
+        </VisualStateManager.VisualStateGroups>
+        <Grid x:Name="configPanel" Width="200" HorizontalAlignment="Left" Background="White" Canvas.ZIndex="10" Visibility="Collapsed">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="56" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <TextBlock Text="Settings" FontSize="42" FontFamily="Segoe UI Light" />
+            <StackPanel x:Name="mainConfigPanel" Grid.Row="1" Margin="10">
+				<StackPanel Name="iterationConfigPanel">
+                <TextBlock Text="Iteration Steps" FontSize="24" FontFamily="Segoe UI Light" ToolTipService.ToolTip="How many steps to stop calculating the recurrence relation?" />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="48" />
+                    </Grid.ColumnDefinitions>
+                    <Slider x:Name="iterationSlider" Orientation="Horizontal" Maximum="256" Minimum="1" SmallChange="1" LargeChange="8" Value="20" />
+                    <TextBlock Grid.Column="1" FontFamily="Segoe UI Light" FontSize="12" Margin="10,0" Text="{Binding Value, Converter={StaticResource DoubleIntegerConverter}, ElementName=iterationSlider}" /> 
+                    <!--<TextBlock Grid.Column="1" FontFamily="Segoe UI Light" FontSize="12" Margin="10,0" Text="{Binding Value, ElementName=iterationSlider}" />-->
+                </Grid>
+				</StackPanel>
+
+				<StackPanel Name="thresholdConfigPanel">
+                <TextBlock Text="Threshold" FontSize="24" FontFamily="Segoe UI Light" ToolTipService.ToolTip="Sets the value to determine the recurrence relation goes to infinity or not." />
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition />
+                        <ColumnDefinition Width="48" />
+                    </Grid.ColumnDefinitions>
+                    <Slider x:Name="thresholdSlider" Orientation="Horizontal" Value="2.0" Minimum="1" />
+                    <TextBlock Grid.Column="1" FontFamily="Segoe UI Light" FontSize="12" Margin="10,0" Text="{Binding Value, ElementName=thresholdSlider, StringFormat=F2}" />
+                </Grid>
+				</StackPanel>
+
+                <TextBlock Text="Domain" FontSize="24" FontFamily="Segoe UI Light" />
+				<StackPanel Name="domainPanel" Margin="5">
+					<TextBlock Text="Real" FontSize="18" FontFamily="Segoe UI Light" />
+					<StackPanel Margin="5,0">
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="28" />
+							<ColumnDefinition />
+	                        <ColumnDefinition Width="48" />
+		                </Grid.ColumnDefinitions>
+						<TextBlock Text="Min" FontFamily="Segoe UI Light" FontSize="12" />
+                            <Slider x:Name="reMinSlider" Grid.Column="1" Orientation="Horizontal" Value="-2.0" Minimum="-10" Maximum="10"/>
+					    <TextBlock Grid.Column="2" FontFamily="Segoe UI Light" FontSize="12" Margin="10,0" Text="{Binding Value, ElementName=reMinSlider, StringFormat=\{0:F2\}}" />
+					</Grid>
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="28" />
+	                        <ColumnDefinition />
+		                    <ColumnDefinition Width="48" />
+			            </Grid.ColumnDefinitions>
+						<TextBlock Text="Max" FontFamily="Segoe UI Light" FontSize="12" />
+                            <Slider x:Name="reMaxSlider" Grid.Column="1" Orientation="Horizontal" Value="1.0" Minimum="-10" Maximum="10"/>
+						<TextBlock Grid.Column="2" FontFamily="Segoe UI Light" FontSize="12" Margin="10,0" Text="{Binding Value, ElementName=reMaxSlider, StringFormat=\{0:F2\}}" />
+					</Grid>
+					</StackPanel>
+
+					<TextBlock Text="Imaginary" FontSize="18" FontFamily="Segoe UI Light" />
+					<StackPanel Margin="5,0">
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="28" />
+							<ColumnDefinition />
+	                        <ColumnDefinition Width="48" />
+		                </Grid.ColumnDefinitions>
+						<TextBlock Text="Min" FontFamily="Segoe UI Light" FontSize="12" />
+                            <Slider x:Name="imMinSlider" Grid.Column="1" Orientation="Horizontal" Value="-1.5" Minimum="-10" Maximum="10" />
+					    <TextBlock Grid.Column="2" FontFamily="Segoe UI Light" FontSize="12" Margin="10,0" Text="{Binding Value, ElementName=imMinSlider, StringFormat=\{0:F2\}i}" />
+					</Grid>
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="28" />
+	                        <ColumnDefinition />
+		                    <ColumnDefinition Width="48" />
+			            </Grid.ColumnDefinitions>
+						<TextBlock Text="Max" FontFamily="Segoe UI Light" FontSize="12" />
+					    <Slider x:Name="imMaxSlider" Grid.Column="1" Orientation="Horizontal" Value="1.5" Minimum="-10" Maximum="10" />
+						<TextBlock Grid.Column="2" FontFamily="Segoe UI Light" FontSize="12" Margin="10,0" Text="{Binding Value, ElementName=imMaxSlider, StringFormat=\{0:F2\}i}" />
+						</Grid>
+
+						</StackPanel>
+					<TextBlock Text="Wheel Step" FontSize="18" FontFamily="Segoe UI Light" ToolTipService.ToolTip="Sets the value of increasing or decreasing the values of the domain when you scroll your mouse wheel." />
+					<Grid>
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition />
+							<ColumnDefinition Width="48" />
+						</Grid.ColumnDefinitions>
+						<Slider Name="scaleStepSlider" Value="0.1" Minimum="0.001" Maximum="2" />
+						<TextBlock Grid.Column="1" FontFamily="Segoe UI Light" FontSize="12" Margin="10,0" Text="{Binding Value, ElementName=scaleStepSlider, StringFormat=\{0:F3\}}" />
+					</Grid>
+					</StackPanel>
+					<StackPanel>
+						
+					</StackPanel>
+				<StackPanel Name="colorConfigPanel" DataContext="{Binding}">
+	                <TextBlock Text="Color" FontSize="24" FontFamily="Segoe UI Light" ToolTipService.ToolTip="Sets the value to determine the recurrence relation goes to infinity or not." />
+					<CheckBox Name="invertColorCheckbox">Invert</CheckBox>
+				</StackPanel>
+
+                <Button Margin="20" Content="Close" Click="settingsCloseButton_Click_1">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="Click">
+                            <ei:GoToStateAction StateName="Closed"/>
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                </Button>
+
+                <TextBlock FontFamily="Segoe UI Light" TextWrapping="Wrap" FontSize="14">Note: Any changes will affect after closing this panel, then full-redraw will be done.</TextBlock>
+            </StackPanel>
+        </Grid>
+        <Grid x:Name="mainPanel">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="64" />
+                <RowDefinition Height="480" />
+                <RowDefinition />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition />
+                <ColumnDefinition Width="640" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Foreground="White" FontSize="48" FontFamily="Segoe UI Light" Grid.Column="1">
+        	<Run Text="Mandelbrot Set"/>
+            </TextBlock>
+            <Border Grid.Row="1" Grid.Column="1" BorderBrush="Gray" BorderThickness="2">
+                <Image x:Name="canvasImage" Grid.Row="1" Grid.Column="1" Width="640" Height="480" MouseWheel="canvasImage_MouseWheel" >
+                	<i:Interaction.Triggers>
+                		<i:EventTrigger EventName="MouseWheel">
+                			<ei:ControlStoryboardAction Storyboard="{StaticResource ShowZoomCenterStoryboard}"/>
+                		</i:EventTrigger>
+                	</i:Interaction.Triggers>
+                </Image>
+            </Border>
+            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="leftBoundIndicator" Foreground="LightGray" FontFamily="Segoe UI Light" VerticalAlignment="Center" HorizontalAlignment="Left" />
+            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="rightBoundIndicator" Foreground="LightGray" FontFamily="Segoe UI Light" VerticalAlignment="Center" HorizontalAlignment="Right" />
+            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="topBoundIndicator" Foreground="LightGray" FontFamily="Segoe UI Light" VerticalAlignment="Top" HorizontalAlignment="Center" />
+            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="bottomBoundIndicator" Foreground="LightGray" FontFamily="Segoe UI Light" VerticalAlignment="Bottom" HorizontalAlignment="Center" />
+            <Border Name="domainCautionBorder" Grid.Row="1" Grid.Column="1" Background="LightGray"  BorderBrush="Yellow" BorderThickness="3" Canvas.ZIndex="5" VerticalAlignment="Center" HorizontalAlignment="Center" Visibility="Collapsed">
+                <StackPanel>
+                    <TextBlock Text="Domain Caution" FontFamily="Segoe UI" FontSize="14" HorizontalAlignment="Center" />
+                    <TextBlock Text="The values of lower bound and higher bound are same." FontFamily="Segoe UI Light" />
+                </StackPanel>
+            </Border>
+            <Border Name="wheelPositionIndicateBorder" Background="White" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0">
+                <TextBlock x:Name="wheelPositionIndicateText" Foreground="Black" FontFamily="Segoe UI Light" FontSize="12" Text="(0.50,0.50)" />
+            </Border>
+            <Button Name="settingsOpenButton" Grid.Column="0" Grid.Row="2" Width="42" Height="42" Background="{Binding Background, ElementName=LayoutRoot}" ToolTipService.ToolTip="Click to open settings panel." Click="settingsOpenButton_Click">
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="Click">
+                        <ei:GoToStateAction StateName="Opened"/>
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
+                <Button.Template>
+                    <ControlTemplate TargetType="Button">
+                        <Grid>
+                            <Grid x:Name="baseCircle">
+                                <Ellipse x:Name="ellipse" Margin="5" Fill="{Binding Background, ElementName=LayoutRoot}" />
+                            </Grid>
+                            <Grid x:Name="gear">
+                                <Grid x:Name="gearTooth" Margin="8,19,21,19">
+                                    <Grid>
+                                        <Rectangle Width="13" Height="4" RenderTransformOrigin="1,0.5" Fill="{Binding Stroke, ElementName=gearCircle}" />
+                                        <Rectangle Width="13" Height="4" RenderTransformOrigin="1,0.5" Fill="{Binding Stroke, ElementName=gearCircle}">
+                                            <Rectangle.RenderTransform>
+                                                <TransformGroup>
+                                                    <ScaleTransform/>
+                                                    <SkewTransform/>
+                                                    <RotateTransform/>
+                                                    <TranslateTransform X="13"/>
+                                                </TransformGroup>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Grid>
+                                    <Grid RenderTransformOrigin="1,0.5">
+                                        <Grid.RenderTransform>
+                                            <TransformGroup>
+                                                <ScaleTransform/>
+                                                <SkewTransform/>
+                                                <RotateTransform Angle="45"/>
+                                                <TranslateTransform/>
+                                            </TransformGroup>
+                                        </Grid.RenderTransform>
+                                        <Rectangle Width="13" Height="4" RenderTransformOrigin="1,0.5" Fill="{Binding Stroke, ElementName=gearCircle}" />
+                                        <Rectangle Width="13" Height="4" RenderTransformOrigin="1,0.5" Fill="{Binding Stroke, ElementName=gearCircle}">
+                                            <Rectangle.RenderTransform>
+                                                <TransformGroup>
+                                                    <ScaleTransform/>
+                                                    <SkewTransform/>
+                                                    <RotateTransform/>
+                                                    <TranslateTransform X="13"/>
+                                                </TransformGroup>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Grid>
+                                    <Grid RenderTransformOrigin="1,0.5">
+                                        <Grid.RenderTransform>
+                                            <TransformGroup>
+                                                <ScaleTransform/>
+                                                <SkewTransform/>
+                                                <RotateTransform Angle="90"/>
+                                                <TranslateTransform/>
+                                            </TransformGroup>
+                                        </Grid.RenderTransform>
+                                        <Rectangle Width="13" Height="4" RenderTransformOrigin="1,0.5" Fill="{Binding Stroke, ElementName=gearCircle}" />
+                                        <Rectangle Width="13" Height="4" RenderTransformOrigin="1,0.5" Fill="{Binding Stroke, ElementName=gearCircle}">
+                                            <Rectangle.RenderTransform>
+                                                <TransformGroup>
+                                                    <ScaleTransform/>
+                                                    <SkewTransform/>
+                                                    <RotateTransform/>
+                                                    <TranslateTransform X="13"/>
+                                                </TransformGroup>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Grid>
+                                    <Grid RenderTransformOrigin="1,0.5">
+                                        <Grid.RenderTransform>
+                                            <TransformGroup>
+                                                <ScaleTransform/>
+                                                <SkewTransform/>
+                                                <RotateTransform Angle="135"/>
+                                                <TranslateTransform/>
+                                            </TransformGroup>
+                                        </Grid.RenderTransform>
+                                        <Rectangle VerticalAlignment="Top" Width="13" Height="4" RenderTransformOrigin="1,0.5" Fill="{Binding Stroke, ElementName=gearCircle}" />
+                                        <Rectangle VerticalAlignment="Top" Width="13" Height="4" RenderTransformOrigin="1,0.5" Fill="{Binding Stroke, ElementName=gearCircle}">
+                                            <Rectangle.RenderTransform>
+                                                <TransformGroup>
+                                                    <ScaleTransform/>
+                                                    <SkewTransform/>
+                                                    <RotateTransform/>
+                                                    <TranslateTransform X="13"/>
+                                                </TransformGroup>
+                                            </Rectangle.RenderTransform>
+                                        </Rectangle>
+                                    </Grid>
+                                </Grid>
+                                <Ellipse x:Name="gearCircle" Stroke="White" VerticalAlignment="Center" StrokeThickness="3" Height="20" Width="20" Fill="{Binding Fill, ElementName=ellipse}" />
+                            </Grid>
+                        </Grid>
+                    </ControlTemplate>
+                </Button.Template>
+            </Button>
+            
+            <!-- navigation -->
+            <StackPanel Name="navigationPanel" Grid.Row="2" Grid.Column="1" ToolTipService.ToolTip="Click to hide this navigations." MouseLeftButtonUp="navigationPanel_MouseLeftButtonUp_1">
+                <TextBlock Foreground="White" FontFamily="Segoe UI Light" FontSize="18">Keyboard... R: Redraw, F: Full Redraw, O: Reset</TextBlock>
+                <TextBlock Foreground="White" FontFamily="Segoe UI Light" FontSize="18">Mouse... Wheel: Change Domain (Note: Small domain may cause broken result.)</TextBlock>
+            </StackPanel>
+        </Grid>
     </Grid>
 </UserControl>
