@@ -25,6 +25,22 @@
 			</DoubleAnimationUsingKeyFrames>
 		</Storyboard>
         <local:DoubleIntegerConverter x:Key="DoubleIntegerConverter" />
+        <Storyboard x:Name="DragPositionStoryboard">
+        	<DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="dragPositionIndicateBorder">
+        		<EasingDoubleKeyFrame KeyTime="0" Value="0"/>
+        		<EasingDoubleKeyFrame KeyTime="0:0:0.5" Value="1">
+        			<EasingDoubleKeyFrame.EasingFunction>
+        				<CircleEase EasingMode="EaseOut"/>
+        			</EasingDoubleKeyFrame.EasingFunction>
+        		</EasingDoubleKeyFrame>
+        	</DoubleAnimationUsingKeyFrames>
+        </Storyboard>
+        <Storyboard x:Name="DragEndPositionStoryboard">
+        	<DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="dragPositionIndicateBorder">
+        		<SplineDoubleKeyFrame KeyTime="0" Value="1"/>
+        		<SplineDoubleKeyFrame KeyTime="0:0:0.5" Value="0"/>
+        	</DoubleAnimationUsingKeyFrames>
+        </Storyboard>
 	</UserControl.Resources>
 
     <Grid x:Name="LayoutRoot" Background="#FF232323">
@@ -68,7 +84,36 @@
                     </Storyboard>
                 </VisualState>
             </VisualStateGroup>
+            <VisualStateGroup x:Name="StartupVisualState">
+            	<VisualState x:Name="Started">
+            		<Storyboard>
+            			<DoubleAnimation Duration="0:0:1" To="0" Storyboard.TargetProperty="(UIElement.Opacity)" Storyboard.TargetName="startupPanel" d:IsOptimized="True"/>
+            			<ObjectAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.Visibility)" Storyboard.TargetName="startupPanel">
+            				<DiscreteObjectKeyFrame KeyTime="0:0:1">
+            					<DiscreteObjectKeyFrame.Value>
+            						<Visibility>Collapsed</Visibility>
+            					</DiscreteObjectKeyFrame.Value>
+            				</DiscreteObjectKeyFrame>
+            			</ObjectAnimationUsingKeyFrames>
+            		</Storyboard>
+            	</VisualState>
+            </VisualStateGroup>
         </VisualStateManager.VisualStateGroups>
+		<Grid Name="startupPanel" Background="{Binding Background, ElementName=LayoutRoot}" Canvas.ZIndex="20">
+			<i:Interaction.Triggers>
+				<i:EventTrigger EventName="MouseLeftButtonUp">
+					<ei:GoToStateAction StateName="Started"/>
+				</i:EventTrigger>
+			</i:Interaction.Triggers>
+			<StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+				<TextBlock Foreground="White" FontSize="42" FontFamily="Segoe UI Light">Mandelbrot Set</TextBlock>
+				<TextBlock Foreground="White" FontSize="16" FontFamily="Segoe UI Light">Click to start</TextBlock>
+			</StackPanel>
+			<StackPanel VerticalAlignment="Bottom">
+				<TextBlock Foreground="White" FontFamily="Segoe UI Light" FontSize="12">Powered by Microsoft Silverlight 5</TextBlock>
+				<TextBlock Foreground="White" FontFamily="Segoe UI Light" FontSize="12">Highly recommended to play with Windows.<LineBreak />This app will work on Mac OS too, but the UI will not be rendered as author intended.</TextBlock>
+			</StackPanel>
+		</Grid>
         <Grid x:Name="configPanel" Width="200" HorizontalAlignment="Left" Background="White" Canvas.ZIndex="10" Visibility="Collapsed">
             <Grid.RowDefinitions>
                 <RowDefinition Height="56" />
@@ -195,10 +240,16 @@
         	<Run Text="Mandelbrot Set"/>
             </TextBlock>
             <Border Grid.Row="1" Grid.Column="1" BorderBrush="Gray" BorderThickness="2">
-                <Image x:Name="canvasImage" Grid.Row="1" Grid.Column="1" Width="640" Height="480" MouseWheel="canvasImage_MouseWheel" >
+                <Image x:Name="canvasImage" Grid.Row="1" Grid.Column="1" Width="640" Height="480" MouseWheel="canvasImage_MouseWheel" MouseLeftButtonDown="canvasImage_MouseLeftButtonDown" MouseMove="canvasImage_MouseMove" MouseLeftButtonUp="canvasImage_MouseLeftButtonUp">
                 	<i:Interaction.Triggers>
                 		<i:EventTrigger EventName="MouseWheel">
                 			<ei:ControlStoryboardAction Storyboard="{StaticResource ShowZoomCenterStoryboard}"/>
+                		</i:EventTrigger>
+                		<i:EventTrigger EventName="MouseLeftButtonDown">
+                			<ei:ControlStoryboardAction Storyboard="{StaticResource DragPositionStoryboard}"/>
+                		</i:EventTrigger>
+                		<i:EventTrigger EventName="MouseLeftButtonUp">
+                			<ei:ControlStoryboardAction Storyboard="{StaticResource DragEndPositionStoryboard}"/>
                 		</i:EventTrigger>
                 	</i:Interaction.Triggers>
                 </Image>
@@ -215,6 +266,9 @@
             </Border>
             <Border Name="wheelPositionIndicateBorder" Background="White" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0">
                 <TextBlock x:Name="wheelPositionIndicateText" Foreground="Black" FontFamily="Segoe UI Light" FontSize="12" Text="(0.50,0.50)" />
+            </Border>
+            <Border Name="dragPositionIndicateBorder" Background="White" Grid.Row="1" Grid.Column="1" VerticalAlignment="Center" HorizontalAlignment="Center" Opacity="0">
+                <TextBlock x:Name="dragPositionIndicateText" Foreground="Black" FontFamily="Segoe UI Light" FontSize="12" Text="(0.50,0.50)" />
             </Border>
             <Button Name="settingsOpenButton" Grid.Column="0" Grid.Row="2" Width="42" Height="42" Background="{Binding Background, ElementName=LayoutRoot}" ToolTipService.ToolTip="Click to open settings panel." Click="settingsOpenButton_Click">
                 <i:Interaction.Triggers>
@@ -317,7 +371,7 @@
             <!-- navigation -->
             <StackPanel Name="navigationPanel" Grid.Row="2" Grid.Column="1" ToolTipService.ToolTip="Click to hide this navigations." MouseLeftButtonUp="navigationPanel_MouseLeftButtonUp_1">
                 <TextBlock Foreground="White" FontFamily="Segoe UI Light" FontSize="18">Keyboard... R: Redraw, F: Full Redraw, O: Reset</TextBlock>
-                <TextBlock Foreground="White" FontFamily="Segoe UI Light" FontSize="18">Mouse... Wheel: Change Domain (Note: Small domain may cause broken result.)</TextBlock>
+                <TextBlock Foreground="White" FontFamily="Segoe UI Light" FontSize="18">Mouse... Wheel: Change Domain</TextBlock>
             </StackPanel>
         </Grid>
     </Grid>

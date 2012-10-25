@@ -26,6 +26,15 @@ namespace MandelbrotSL
         double yStep;
         double yOrigin;
 
+        public double XStep
+        {
+            get { return xStep; }
+        }
+        public double YStep
+        {
+            get { return yStep; }
+        }
+
         public event EventHandler DrawCompleted;
 
         public PlotCanvas(int width, int height, Complex topLeft, Complex bottomRight)

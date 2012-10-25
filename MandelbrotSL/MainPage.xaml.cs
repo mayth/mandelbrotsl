@@ -35,6 +35,11 @@ namespace MandelbrotSL
         double scaleStep = defaultScaleStep;
         bool isColorInverted = false;
 
+        bool isDragging;
+        Point dragStartPos;
+        Complex dragStartLeftTop;
+        Complex dragStartRightBottom;
+
         public MainPage()
         {
             InitializeComponent();
@@ -136,13 +141,18 @@ namespace MandelbrotSL
 
             canvas.Draw(iterationLimit, threshold);
 
+            UpdateBoundText();
+
+            isDrawing = false;
+        }
+
+        private void UpdateBoundText()
+        {
             // Update bounds
             topBoundIndicator.Text = canvas.TopLeft.Imaginary.ToString("F2");
             leftBoundIndicator.Text = canvas.TopLeft.Real.ToString("F2");
             bottomBoundIndicator.Text = canvas.BottomRight.Imaginary.ToString("F2");
             rightBoundIndicator.Text = canvas.BottomRight.Real.ToString("F2");
-
-            isDrawing = false;
         }
 
         // Recreate new canvas and draw. Call this method when the scale is changed.
@@ -203,6 +213,54 @@ namespace MandelbrotSL
         private void navigationPanel_MouseLeftButtonUp_1(object sender, MouseButtonEventArgs e)
         {
             navigationPanel.Visibility = System.Windows.Visibility.Collapsed;
+        }
+
+        private void canvasImage_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            isDragging = true;
+            var p = e.GetPosition(canvasImage);
+            dragPositionIndicateBorder.Opacity = 1;
+            canvasImage.CaptureMouse();
+
+            // Calculate the relative position from the left-top of canvasImage. (range: 0 - 1)
+            var relativeX = p.X / canvasImage.ActualWidth;
+            var relativeY = p.Y / canvasImage.ActualHeight;
+
+            dragStartPos = new Point(relativeX, relativeY);
+            dragStartLeftTop = topLeft;
+            dragStartRightBottom = bottomRight;
+        }
+
+        private void canvasImage_MouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            isDragging = false;
+            canvasImage.ReleaseMouseCapture();
+
+            FullRedraw();
+
+            dragPositionIndicateBorder.Opacity = 0;
+        }
+
+        private void canvasImage_MouseMove(object sender, System.Windows.Input.MouseEventArgs e)
+        {
+            if (!isDragging)
+                return;
+            var current = e.GetPosition(canvasImage);
+
+            // Calculate the relative position from the left-top of canvasImage. (range: 0 - 1)
+            var currentRelativeX = current.X / canvasImage.ActualWidth;
+            var currentRelativeY = current.Y / canvasImage.ActualHeight;
+
+            var diffX = currentRelativeX - dragStartPos.X;
+            var diffY = currentRelativeY - dragStartPos.Y;
+
+            topLeft -= new Complex(diffX, -diffY);
+            bottomRight -= new Complex(diffX, -diffY);
+
+            dragPositionIndicateText.Text = string.Format("(({4:F2},{5:F2}),({6:F2},{7:F2}))",
+                dragStartLeftTop.Real, dragStartLeftTop.Imaginary, dragStartRightBottom.Real, dragStartRightBottom.Imaginary,
+                topLeft.Real, topLeft.Imaginary, bottomRight.Real, bottomRight.Imaginary);
+            dragStartPos = new Point(currentRelativeX, currentRelativeY);
         }
     }
 }
